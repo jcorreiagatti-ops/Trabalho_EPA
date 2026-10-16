@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoramento de Estufa</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.08);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes alertaPiscando {
+      0% {
+        box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+      }
+
+      50% {
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.9);
+      }
+
+      100% {
+        box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+      }
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7f6;
+      margin: 0;
+      padding: 30px;
+      animation: fadeIn 0.8s ease-out;
+      box-sizing: border-box;
+    }
+
+    .header-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #2c3e50;
+      font-size: 2.2rem;
+      margin: 0 0 8px 0;
+    }
+
+    .relogio {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #34495e;
+      background: #e8ecef;
+      display: inline-block;
+      padding: 6px 18px;
+      border-radius: 20px;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Caixa de Aviso de Alerta Geral */
+    .banner-aviso {
+      display: none;
+      background-color: #e74c3c;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      text-align: center;
+      transition: background-color 0.4s ease, transform 0.3s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+    }
+
+    .card h3 {
+      margin: 0;
+      color: #7f8c8d;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .card p {
+      margin: 10px 0 0;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .card p.updated {
+      animation: pulse 0.5s ease-in-out;
+    }
+
+    .card.alerta {
+      background-color: #e74c3c !important;
+      animation: alertaPiscando 1.5s infinite;
+    }
+
+    .card.alerta h3,
+    .card.alerta p {
+      color: #ffffff !important;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 25px;
+      width: 100%;
+    }
+
+    .tanque-card {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tanque-card h3 {
+      margin: 0 0 15px 0;
+      color: #7f8c8d;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    .tanque-outer {
+      width: 110px;
+      height: 220px;
+      border: 4px solid #34495e;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      background: #ebf5fb;
+    }
+
+    .agua-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: #3498db;
+      transition: height 0.8s ease-in-out;
+    }
+
+    .tanque-info {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #2c3e50;
+      font-size: 1.1rem;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      min-height: 320px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-container">
+    <h1>Painel de Controle da Estufa Inteligente</h1>
+    <div class="relogio" id="relogio">00:00:00</div>
+  </div>
+
+  <!-- Banner de Alerta Exibido Dinamicamente -->
+  <div class="banner-aviso" id="bannerAviso">
+    ⚠️ ATENÇÃO: Há parâmetros fora do limite ideal! Clique no cartão em vermelho para corrigir.
+  </div>
+
+  <div class="cards">
+    <div class="card" id="card-temp-container" onclick="normalizarParametro('temperatura')">
+      <h3>Temperatura</h3>
+      <p id="card-temp">-- °C</p>
+    </div>
+    <div class="card" id="card-umid-ar-container" onclick="normalizarParametro('umidade_ar')">
+      <h3>Umidade Ar</h3>
+      <p id="card-umid-ar">-- %</p>
+    </div>
+    <div class="card" id="card-umid-solo-container" onclick="normalizarParametro('umidade_solo')">
+      <h3>Umidade Solo</h3>
+      <p id="card-umid-solo">-- %</p>
+    </div>
+    <div class="card" id="card-luz-container" onclick="normalizarParametro('luminosidade')">
+      <h3>Luminosidade</h3>
+      <p id="card-luz">-- %</p>
+    </div>
+    <div class="card" id="card-agua-container" onclick="normalizarParametro('distancia_agua')">
+      <h3>Distância Água</h3>
+      <p id="card-agua">-- cm</p>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="tanque-card">
+      <h3>Nível de Água</h3>
+      <div class="tanque-outer">
+        <div class="agua-fill" id="aguaFill"></div>
+      </div>
+      <div class="tanque-info" id="tanqueTexto">-- % Cheio</div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-container"><canvas id="tempChart"></canvas></div>
+      <div class="chart-container"><canvas id="umidChart"></canvas></div>
+    </div>
+  </div>
+
+  <script>
+    function atualizarRelogio() {
+      const agora = new Date();
+      document.getElementById('relogio').innerText = agora.toLocaleTimeString('pt-BR');
+    }
+    setInterval(atualizarRelogio, 1000);
+    atualizarRelogio();
+
+    Chart.defaults.animation.duration = 1000;
+    Chart.defaults.animation.easing = 'easeOutQuart';
+
+    const ctxTemp = document.getElementById('tempChart').getContext('2d');
+    const ctxUmid = document.getElementById('umidChart').getContext('2d');
+
+    const tempChart = new Chart(ctxTemp, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Temperatura (°C)',
+          data: [],
+          borderColor: '#e74c3c',
+          backgroundColor: 'rgba(231, 76, 60, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const umidChart = new Chart(ctxUmid, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Umidade Solo (%)',
+            data: [],
+            borderColor: '#27ae60',
+            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Umidade Ar (%)',
+            data: [],
+            borderColor: '#2980b9',
+            backgroundColor: 'rgba(41, 128, 185, 0.1)',
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    let ultimaLeitura = null;
+
+    function animarValor(id, novoTexto) {
+      const el = document.getElementById(id);
+      if (el.innerText !== novoTexto) {
+        el.innerText = novoTexto;
+        el.classList.remove('updated');
+        void el.offsetWidth;
+        el.classList.add('updated');
+      }
+    }
+
+    async function atualizarDados() {
+      try {
+        const response = await fetch(
+          'https://inquisitive-dieffenbachia-19b97a.netlify.app/dados_teste_estufa.json'
+        );
+
+        if (!response.ok) {
+          throw new Error('Não foi possível carregar o JSON');
+        }
+
+        const dados = await response.json();
+
+        if (!Array.isArray(dados) || dados.length === 0) {
+          console.error('O JSON não contém uma lista de leituras');
+          return;
+        }
+
+        const ult = dados[dados.length - 1];
+        ultimaLeitura = ult;
+
+        animarValor('card-temp', `${ult.temperatura} °C`);
+        animarValor('card-umid-ar', `${ult.umidade_ar} %`);
+        animarValor('card-umid-solo', `${ult.umidade_solo} %`);
+        animarValor('card-luz', `${ult.luminosidade} %`);
+        animarValor('card-agua', `${ult.distancia_agua_cm} cm`);
+
+        // Nível de Água no Tanque (20cm = Vazio / 0cm = Cheio)
+        const alturaMaxTanqueCm = 20;
+        let pctCheio = Math.max(0, Math.min(100, Math.round(((alturaMaxTanqueCm - ult.distancia_agua_cm) / alturaMaxTanqueCm) * 100)));
+        document.getElementById('aguaFill').style.height = `${pctCheio}%`;
+        document.getElementById('tanqueTexto').innerText = `${pctCheio}% Cheio`;
+
+        // LÓGICA DE AVALIAÇÃO DE ALERTAS
+        let alertasAtivos = [];
+
+        // 1. Temperatura
+        const cTemp = document.getElementById('card-temp-container');
+        if (ult.temperatura > 30) {
+          cTemp.classList.add('alerta');
+          alertasAtivos.push('Temperatura Alta');
+        } else {
+          cTemp.classList.remove('alerta');
+        }
+
+        // 2. Umidade do Ar
+        const cUmidAr = document.getElementById('card-umid-ar-container');
+        if (ult.umidade_ar < 30 || ult.umidade_ar > 80) {
+          cUmidAr.classList.add('alerta');
+          alertasAtivos.push('Umidade do Ar Crítica');
+        } else {
+          cUmidAr.classList.remove('alerta');
+        }
+
+        // 3. Umidade do Solo
+        const cUmidSolo = document.getElementById('card-umid-solo-container');
+        if (ult.umidade_solo < 30 || ult.umidade_solo > 85) {
+          cUmidSolo.classList.add('alerta');
+          alertasAtivos.push('Umidade do Solo Crítica');
+        } else {
+          cUmidSolo.classList.remove('alerta');
+        }
+
+        // 4. Luminosidade
+        const cLuz = document.getElementById('card-luz-container');
+        if (ult.luminosidade < 20) {
+          cLuz.classList.add('alerta');
+          alertasAtivos.push('Baixa Luminosidade');
+        } else {
+          cLuz.classList.remove('alerta');
+        }
+
+        // 5. Distância/Reservatório de Água
+        const cAgua = document.getElementById('card-agua-container');
+        if (ult.distancia_agua_cm > 16) { // Reservatório quase vazio
+          cAgua.classList.add('alerta');
+          alertasAtivos.push('Reservatório de Água Baixo');
+        } else {
+          cAgua.classList.remove('alerta');
+        }
+
+        // Exibir ou Ocultar o Banner de Aviso Geral
+        const banner = document.getElementById('bannerAviso');
+        if (alertasAtivos.length > 0) {
+          banner.style.display = 'block';
+          banner.innerText = `⚠️ ALERTA: ${alertasAtivos.join(' | ')}. Clique no cartão vermelho para normalizar.`;
+        } else {
+          banner.style.display = 'none';
+        }
+
+        // Atualizar Gráficos
+        const rotulos = dados.map(d => new Date(d.data_hora).toLocaleTimeString('pt-BR'));
+
+        tempChart.data.labels = rotulos;
+        tempChart.data.datasets[0].data = dados.map(d => d.temperatura);
+        tempChart.update();
+
+        umidChart.data.labels = rotulos;
+        umidChart.data.datasets[0].data = dados.map(d => d.umidade_solo);
+        umidChart.data.datasets[1].data = dados.map(d => d.umidade_ar);
+        umidChart.update();
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      }
+    }
+
+    // Função universal para normalizar parâmetros ao clicar no cartão com alerta
+    async function normalizarParametro(tipo) {
+      if (!ultimaLeitura) return;
+
+      let novoDado = { ...ultimaLeitura };
+
+      if (tipo === 'temperatura' && ultimaLeitura.temperatura > 30) {
+        novoDado.temperatura = 24.0;
+      } else if (tipo === 'umidade_ar' && (ultimaLeitura.umidade_ar < 30 || ultimaLeitura.umidade_ar > 80)) {
+        novoDado.umidade_ar = 55.0;
+      } else if (tipo === 'umidade_solo' && (ultimaLeitura.umidade_solo < 30 || ultimaLeitura.umidade_solo > 85)) {
+        novoDado.umidade_solo = 50.0;
+      } else if (tipo === 'luminosidade' && ultimaLeitura.luminosidade < 20) {
+        novoDado.luminosidade = 70.0;
+      } else if (tipo === 'distancia_agua' && ultimaLeitura.distancia_agua_cm > 16) {
+        novoDado.distancia_agua_cm = 5.0; // Enche o tanque
+      } else {
+        return; // Não executa ação se não estiver em estado de alerta
+      }
+
+      
+    }
+
+    setInterval(atualizarDados, 5000);
+    atualizarDados();
+  </script>
+</body>
+
+</html>
